@@ -1,35 +1,67 @@
 #!/usr/bin/env python3
-"""Line segment intersection detection and point computation."""
+"""line_intersect: Line segment intersection detection."""
 import sys
 
-def cross(o, a, b):
-    return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+def ccw(A, B, C):
+    return (C[1]-A[1])*(B[0]-A[0]) > (B[1]-A[1])*(C[0]-A[0])
 
-def on_segment(p, q, r):
-    return min(p[0],r[0]) <= q[0] <= max(p[0],r[0]) and min(p[1],r[1]) <= q[1] <= max(p[1],r[1])
-
-def segments_intersect(p1, p2, p3, p4):
-    d1 = cross(p3, p4, p1); d2 = cross(p3, p4, p2)
-    d3 = cross(p1, p2, p3); d4 = cross(p1, p2, p4)
-    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and        ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)): return True
-    if d1 == 0 and on_segment(p3, p1, p4): return True
-    if d2 == 0 and on_segment(p3, p2, p4): return True
-    if d3 == 0 and on_segment(p1, p3, p2): return True
-    if d4 == 0 and on_segment(p1, p4, p2): return True
+def segments_intersect(A, B, C, D):
+    if ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D):
+        return True
     return False
 
 def intersection_point(p1, p2, p3, p4):
     x1,y1 = p1; x2,y2 = p2; x3,y3 = p3; x4,y4 = p4
-    denom = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
+    denom = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
     if abs(denom) < 1e-10: return None
-    t = ((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/denom
-    return (x1+t*(x2-x1), y1+t*(y2-y1))
+    t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / denom
+    u = -((x1-x2)*(y1-y3) - (y1-y2)*(x1-x3)) / denom
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        x = x1 + t*(x2-x1)
+        y = y1 + t*(y2-y1)
+        return (x, y)
+    return None
 
-def main():
-    tests = [((0,0),(4,4),(0,4),(4,0)), ((0,0),(2,2),(3,3),(5,5)), ((0,0),(2,0),(1,-1),(1,1))]
-    for p1,p2,p3,p4 in tests:
-        hit = segments_intersect(p1,p2,p3,p4)
-        pt = intersection_point(p1,p2,p3,p4) if hit else None
-        print(f"{p1}-{p2} x {p3}-{p4}: {hit}" + (f" at {pt}" if pt else ""))
+def point_in_polygon(point, polygon):
+    x, y = point
+    n = len(polygon)
+    inside = False
+    j = n - 1
+    for i in range(n):
+        xi, yi = polygon[i]
+        xj, yj = polygon[j]
+        if ((yi > y) != (yj > y)) and (x < (xj-xi)*(y-yi)/(yj-yi)+xi):
+            inside = not inside
+        j = i
+    return inside
 
-if __name__ == "__main__": main()
+def polygon_area(polygon):
+    n = len(polygon)
+    a = sum(polygon[i][0]*polygon[(i+1)%n][1] - polygon[(i+1)%n][0]*polygon[i][1] for i in range(n))
+    return abs(a) / 2
+
+def test():
+    # Crossing segments
+    assert segments_intersect((0,0),(2,2),(0,2),(2,0))
+    assert not segments_intersect((0,0),(1,1),(2,2),(3,3))
+    # Intersection point
+    pt = intersection_point((0,0),(2,2),(0,2),(2,0))
+    assert pt is not None
+    assert abs(pt[0] - 1.0) < 0.001
+    assert abs(pt[1] - 1.0) < 0.001
+    # Parallel
+    assert intersection_point((0,0),(1,0),(0,1),(1,1)) is None
+    # Point in polygon
+    square = [(0,0),(4,0),(4,4),(0,4)]
+    assert point_in_polygon((2,2), square)
+    assert not point_in_polygon((5,5), square)
+    assert not point_in_polygon((-1,2), square)
+    # Polygon area
+    assert abs(polygon_area(square) - 16.0) < 0.001
+    tri = [(0,0),(3,0),(0,4)]
+    assert abs(polygon_area(tri) - 6.0) < 0.001
+    print("All tests passed!")
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "test": test()
+    else: print("Usage: line_intersect.py test")
