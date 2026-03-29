@@ -1,11 +1,11 @@
-# line_intersect
+# line-intersect
 
-line_intersect: Line segment intersection detection.
-
-Single-file, zero-dependency Python CLI.
+Line segment intersection and sweep line algorithm.
 
 ## Usage
 
 ```bash
 python3 line_intersect.py test
 ```
+
+Zero dependencies. Python 3.8+.
